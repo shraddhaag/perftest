@@ -9,19 +9,15 @@ const http = require('http');
 const https = require('https');
 
 const httpAgent = new http.Agent({
-    keepAlive: true,
+    keepAlive: false,  
     maxSockets: 100,
-    maxFreeSockets: 20,
-    timeout: 60000,
-    freeSocketTimeout: 30000
+    timeout: 30000
 });
 
 const httpsAgent = new https.Agent({
-    keepAlive: true,
+    keepAlive: false,  
     maxSockets: 100,
-    maxFreeSockets: 20,
-    timeout: 60000,
-    freeSocketTimeout: 30000
+    timeout: 30000
 });
 
 const overallMetrics = {
@@ -47,9 +43,7 @@ function sendRequest(urlStr) {
         port: parsedUrl.port,
         agent: agent,
         timeout: 30000,
-        // Add connection pooling options
-        keepAlive: true,
-        keepAliveMsecs: 1000,
+        keepAlive: false,
     };
 
     return new Promise((resolve, reject) => {
