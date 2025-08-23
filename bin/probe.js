@@ -157,15 +157,14 @@ async function loadTestEnpoint(urlStr, duration, concurrency) {
 
     const endTime = performance.now(); 
 
-    console.log("Time elapsed: ", (endTime - startTime)/1000, "s");
-    console.log("Total Requests: ", overallMetrics.totalCount);
-    console.log("Successful Requests: ", overallMetrics.successCount);
-    console.log("Failed Requests: ", overallMetrics.failureCount); 
-    helpers.printMetrics("Response Time", overallMetrics.responseTimes);
-    helpers.printMetrics("DNS Lookup", overallMetrics.dnsLookup);
-    helpers.printMetrics("TCP Connection", overallMetrics.tcpConnection);
-    helpers.printMetrics("TLS Hanshake", overallMetrics.tlsHanshake);
-    helpers.printMetrics("TTFB", overallMetrics.ttfb);
+    const testDuration = (endTime - startTime) / 1000;
+    
+    const metricsForDisplay = {
+        ...overallMetrics,
+        duration: testDuration
+    };
+    
+    helpers.printBeautifulMetrics(metricsForDisplay);
     
     httpAgent.destroy();
     httpsAgent.destroy();

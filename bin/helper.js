@@ -23,4 +23,53 @@ function printMetrics(name, samples) {
   console.log(`${name.padEnd(10)}: min=${fmtMs(s.min)}  p50=${fmtMs(s.p50)}  p90=${fmtMs(s.p90)}  p99=${fmtMs(s.p99)}  max=${fmtMs(s.max)}  mean=${fmtMs(s.mean)}  n=${s.count}`);
 }
 
-module.exports = {ms, push, printMetrics}; 
+// New function for beautiful metrics display
+function printBeautifulMetrics(metrics) {
+  console.log('\n' + '='.repeat(80));
+  console.log('PERFORMANCE TEST RESULTS');
+  console.log('='.repeat(80));
+  
+  // Summary section
+  console.log('\nSUMMARY');
+  console.log('─'.repeat(40));
+  console.log(`Test Duration: ${metrics.duration.toFixed(2)}s`);
+  console.log(`Total Requests: ${metrics.totalCount.toLocaleString()}`);
+  console.log(`Successful: ${metrics.successCount.toLocaleString()} (${((metrics.successCount / metrics.totalCount) * 100).toFixed(1)}%)`);
+  console.log(`Failed: ${metrics.failureCount.toLocaleString()} (${((metrics.failureCount / metrics.totalCount) * 100).toFixed(1)}%)`);
+  console.log(`Requests/sec: ${(metrics.totalCount / metrics.duration).toFixed(1)}`);
+  
+  // Detailed metrics table
+  console.log('\nDETAILED METRICS\n');
+  
+  const metricNames = [
+    { key: 'responseTimes', name: 'Response Time' },
+    { key: 'dnsLookup', name: 'DNS Lookup' },
+    { key: 'tcpConnection', name: 'TCP Connection' },
+    { key: 'tlsHanshake', name: 'TLS Handshake' },
+    { key: 'ttfb', name: 'Time to First Byte' }
+  ];
+  
+  // Print table header
+  console.log(`${'Metric'.padEnd(18)} │ ${'Min'.padEnd(12)} │ ${'P50'.padEnd(12)} │ ${'P90'.padEnd(12)} │ ${'P99'.padEnd(12)} │ ${'Max'.padEnd(12)} │ ${'Mean'.padEnd(12)} │ ${'Count'.padEnd(8)}`);
+  
+  // Print each metric
+  metricNames.forEach(({ key, name }) => {
+    const samples = metrics[key];
+    const s = summarize(samples);
+    if (s && s.count > 0) {
+      const row = [
+        name.padEnd(18),
+        fmtMs(s.min).padEnd(12),
+        fmtMs(s.p50).padEnd(12),
+        fmtMs(s.p90).padEnd(12),
+        fmtMs(s.p99).padEnd(12),
+        fmtMs(s.max).padEnd(12),
+        fmtMs(s.mean).padEnd(12),
+        s.count.toString().padEnd(8)
+      ];
+      console.log(row.join(' │ '));
+    }
+  });
+}
+
+module.exports = {ms, push, printMetrics, printBeautifulMetrics}; 
