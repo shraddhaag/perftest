@@ -1,11 +1,13 @@
 const url = require('url');
 const { performance } = require('perf_hooks');
+const helpers = require('./helper.js')
 
-const metrics = {
+const overallMetrics = {
     totalCount: 0, 
     successCount: 0, 
     failureCount: 0, 
-    totalBytes: 0, 
+    totalBytes: 0,
+    responseTimes: [] 
 }
 
 function sendRequest(urlStr) {
@@ -18,13 +20,16 @@ function sendRequest(urlStr) {
     };
 
     return new Promise((resolve, reject) => {
+        metrics = { start: performance.now() };
         const request = protocol.get(options, res => {
             let bytes = 0; 
             res.on("data", chunk => { bytes += chunk.length; }); 
             res.on("end", () => {
+                metrics.end = performance.now();
                 resolve({
                     status: res.statusCode, 
                     bytes: bytes, 
+                    metrics: metrics, 
                 });
             }); 
         });
@@ -35,15 +40,25 @@ function sendRequest(urlStr) {
     });
 }
 
+function calculateMetrics(metrics, status) {
+    if (status >= 200 && status <= 300) overallMetrics.successCount++; else overallMetrics.failureCount++;
+    responseTime = (metrics.end != null) ? (metrics.end - metrics.start) : null;
+    return {
+        responseTime: helpers.ms(responseTime), 
+    };
+}
+
 async function worker(urlStr, deadline) {
     while (performance.now() < deadline) {
-        metrics.totalCount++;
+        overallMetrics.totalCount++;
 
         try {
-            const {status, bytes} = await sendRequest(urlStr);
-            if (status >= 200 && status <= 300) metrics.successCount++; else metrics.failureCount++;
+            const {status, bytes, metrics} = await sendRequest(urlStr);
+            
+            calculatedMetrics = calculateMetrics(metrics, status); 
+            helpers.push(overallMetrics.responseTimes, calculatedMetrics.responseTime);
         } catch (error) {
-            metrics.failureCount++;
+            overallMetrics.failureCount++;
         }
     }
 }
@@ -60,9 +75,10 @@ async function loadTestEnpoint(urlStr, duration, concurrency) {
     const endTime = performance.now(); 
 
     console.log("Time elapsed: ", (endTime - startTime)/1000, "s");
-    console.log("Total Requests: ", metrics.totalCount);
-    console.log("Successful Requests: ", metrics.successCount);
-    console.log("Failed Requests: ", metrics.failureCount); 
+    console.log("Total Requests: ", overallMetrics.totalCount);
+    console.log("Successful Requests: ", overallMetrics.successCount);
+    console.log("Failed Requests: ", overallMetrics.failureCount); 
+    helpers.printMetrics("Response Time", overallMetrics.responseTimes);
 }
 
 module.exports = {loadTestEnpoint}; 
