@@ -17,15 +17,25 @@ A few things to note:
 
 ### Usage
 
-The CLI accepts 3 arguments: 
+The CLI accepts the following arguments:
 
-1. `endpoint` - required, the GET endpoint to get performance metrics for. 
-2. `duration` - interval for which the CLI will performnce test the given endppint. Default value: 11s. 
-3. `concurrency` - number of requests to issue concurrently. Default value: 100. 
+| Argument | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `--endpoint` | Target URL to load test | - | Yes |
+| `--duration` | Test duration in seconds | 11 | No |
+| `--concurrency` | Number of concurrent workers | 100 | No |
+| `--connection-reuse` | Keep connections alive for reuse | true | No |
 
 Sample usage: 
-```
-perftest --endpoint <URL> --duration <DURATION> --concurrency <NUM_OF_WORK>
+```bash
+# Basic usage
+perftest --endpoint https://httpbin.org/get
+
+# With custom duration and concurrency
+perftest --endpoint https://httpbin.org/get --duration 30 --concurrency 50
+
+# With connection reuse disabled
+perftest --endpoint https://httpbin.org/get --duration 60 --concurrency 100 --connection-reuse false
 ```
 
 Sample output: 

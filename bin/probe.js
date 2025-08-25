@@ -8,18 +8,6 @@ require('events').EventEmitter.defaultMaxListeners = 100;
 const http = require('http');
 const https = require('https');
 
-const httpAgent = new http.Agent({
-    keepAlive: false,  
-    maxSockets: 100,
-    timeout: 30000
-});
-
-const httpsAgent = new https.Agent({
-    keepAlive: false,  
-    maxSockets: 100,
-    timeout: 30000
-});
-
 const overallMetrics = {
     totalCount: 0, 
     successCount: 0, 
@@ -32,18 +20,16 @@ const overallMetrics = {
     ttfb: [], 
 }
 
-function sendRequest(urlStr) {
+function sendRequest(urlStr, connectionReuse, workerAgent) {
     var parsedUrl = url.parse(urlStr, true);
     var protocol = (parsedUrl.protocol == "http:") ? http : https;
-    var agent = (parsedUrl.protocol == "http:") ? httpAgent : httpsAgent;
     
     let options = {
         path: parsedUrl.pathname,
         host: parsedUrl.hostname,
         port: parsedUrl.port,
-        agent: agent,
         timeout: 30000,
-        keepAlive: false,
+        agent: workerAgent, 
     };
 
     return new Promise((resolve, reject) => {
@@ -127,26 +113,37 @@ function calculateMetrics(metrics, status) {
     helpers.push(overallMetrics.ttfb, ttfb);
 }
 
-async function worker(urlStr, deadline) {
-    while (helpers.ms(process.hrtime.bigint()) < deadline) {
-        overallMetrics.totalCount++;
+async function worker(urlStr, deadline, connectionReuse) {
+    // Create agent for this worker if connection reuse is enabled
+    const parsedUrl = url.parse(urlStr, true);
+    const isHttps = parsedUrl.protocol === 'https:';
+    const workerAgent = isHttps ? 
+        new https.Agent({ keepAlive: connectionReuse, maxSockets: 1, timeout: 30000 }) :
+        new http.Agent({ keepAlive: connectionReuse, maxSockets: 1, timeout: 30000 });
 
-        try {
-            const {status, bytes, metrics} = await sendRequest(urlStr);
-            
-            calculateMetrics(metrics, status); 
-        } catch (error) {
-            overallMetrics.failureCount++;
+    try {
+        while (helpers.ms(process.hrtime.bigint()) < deadline) {
+            overallMetrics.totalCount++;
+
+            try {
+                const {status, bytes, metrics} = await sendRequest(urlStr, connectionReuse, workerAgent);
+                
+                calculateMetrics(metrics, status); 
+            } catch (error) {
+                overallMetrics.failureCount++;
+            }
         }
+    } finally {
+        workerAgent.destroy();
     }
 }
 
-async function loadTestEnpoint(urlStr, duration, concurrency) {
+async function loadTestEnpoint(urlStr, duration, concurrency, connectionReuse) {
     const durationInMilliSeconds = Math.max(1, Math.round(Number(duration) * 1000));
     const startTime = process.hrtime.bigint(); 
     const deadline = helpers.ms(startTime) + durationInMilliSeconds;  
 
-    const workers = Array(concurrency).fill().map(() => worker(urlStr, deadline));
+    const workers = Array(concurrency).fill().map(() => worker(urlStr, deadline, connectionReuse));
     
     await Promise.all(workers); 
 
@@ -160,9 +157,6 @@ async function loadTestEnpoint(urlStr, duration, concurrency) {
     };
     
     helpers.printBeautifulMetrics(metricsForDisplay);
-    
-    httpAgent.destroy();
-    httpsAgent.destroy();
 }
 
 module.exports = {loadTestEnpoint}; 
