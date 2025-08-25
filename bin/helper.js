@@ -1,4 +1,25 @@
-const ms = (v) => (v == null ? null : Number(v.toFixed(2)));
+const ms = (v) => {
+    if (v == null) return null;
+    if (typeof v === 'bigint') {
+        return Number((Number(v) / 1000000).toFixed(2));
+    }
+    return Number(v.toFixed(2));
+};
+
+function diffBigint(end, start) {
+    if (!end || !start) return null;
+    return end - start;
+}
+
+function diffHrtime(end, start) {
+    if (!end || !start) return null;
+    const diff = [end[0] - start[0], end[1] - start[1]];
+    if (diff[1] < 0) {
+        diff[0] -= 1;
+        diff[1] += 1000000000;
+    }
+    return diff;
+}
 
 function push(arr, v) { if (v != null && !Number.isNaN(v)) arr.push(v); }
 
@@ -72,4 +93,4 @@ function printBeautifulMetrics(metrics) {
   });
 }
 
-module.exports = {ms, push, printMetrics, printBeautifulMetrics}; 
+module.exports = {ms, push, printMetrics, printBeautifulMetrics, diffHrtime, diffBigint}; 

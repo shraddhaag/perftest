@@ -40,20 +40,20 @@ PERFORMANCE TEST RESULTS
 
 SUMMARY
 ────────────────────────────────────────
-Test Duration: 12.52s
-Total Requests: 1,941
-Successful: 1,940 (99.9%)
-Failed: 1 (0.1%)
-Requests/sec: 155.1
+Test Duration: 12.87s
+Total Requests: 2,271
+Successful: 2,265 (99.7%)
+Failed: 6 (0.3%)
+Requests/sec: 176.5
 
 DETAILED METRICS
 
 Metric             │ Min          │ P50          │ P90          │ P99          │ Max          │ Mean         │ Count
-Response Time      │ 0.04 ms      │ 0.46 ms      │ 14.24 ms     │ 400.93 ms    │ 4617.63 ms   │ 19.91 ms     │ 1941
-DNS Lookup         │ 3234.05 ms   │ 3234.05 ms   │ 3234.05 ms   │ 3234.05 ms   │ 3234.05 ms   │ 3234.05 ms   │ 1
-TCP Connection     │ 1007.52 ms   │ 1007.52 ms   │ 1007.52 ms   │ 1007.52 ms   │ 1007.52 ms   │ 1007.52 ms   │ 1
-TLS Handshake      │ 255.82 ms    │ 255.82 ms    │ 255.82 ms    │ 255.82 ms    │ 255.82 ms    │ 255.82 ms    │ 1
-Time to First Byte │ 0.20 ms      │ 1.33 ms      │ 6.03 ms      │ 102.79 ms    │ 119.66 ms    │ 9.28 ms      │ 16
+Response Time      │ 201.32 ms    │ 230.15 ms    │ 990.19 ms    │ 3206.40 ms   │ 4462.20 ms   │ 497.12 ms    │ 2271
+DNS Lookup         │ 52.87 ms     │ 71.03 ms     │ 77.17 ms     │ 77.78 ms     │ 77.83 ms     │ 68.91 ms     │ 100
+TCP Connection     │ 214.59 ms    │ 1439.93 ms   │ 1496.89 ms   │ 1516.83 ms   │ 1522.37 ms   │ 1379.60 ms   │ 100
+TLS Handshake      │ 545.11 ms    │ 1014.21 ms   │ 1399.13 ms   │ 1429.17 ms   │ 1439.52 ms   │ 1076.58 ms   │ 100
+Time to First Byte │ 211.69 ms    │ 230.36 ms    │ 749.34 ms    │ 1417.54 ms   │ 1541.59 ms   │ 395.83 ms    │ 100
 ```
 
 ### Setup

@@ -47,8 +47,8 @@ function sendRequest(urlStr) {
     };
 
     return new Promise((resolve, reject) => {
-        metrics = { 
-            start: performance.now(), 
+        let metrics = { 
+            start: process.hrtime.bigint(), 
             dnsLookupAt: undefined,
             tcpConnectionAt: undefined,
             tlsHandshakeAt: undefined,
@@ -59,11 +59,11 @@ function sendRequest(urlStr) {
         const request = protocol.get(options, res => {
             let bytes = 0; 
             res.once('readable', () => {
-                metrics.firstByteAt = performance.now();
+                metrics.firstByteAt = process.hrtime.bigint();
             })
             res.on("data", chunk => { bytes += chunk.length; }); 
             res.on("end", () => {
-                metrics.end = performance.now();
+                metrics.end = process.hrtime.bigint();
                 resolve({
                     status: res.statusCode, 
                     bytes: bytes, 
@@ -83,13 +83,13 @@ function sendRequest(urlStr) {
             };
             
             socket.on('lookup', () => {
-                metrics.dnsLookupAt = performance.now();
+                metrics.dnsLookupAt = process.hrtime.bigint();
             });
             socket.on('connect', () => {
-                metrics.tcpConnectionAt =  performance.now();
+                metrics.tcpConnectionAt = process.hrtime.bigint();
             });
             socket.on('secureConnect', () => {
-                metrics.tlsHandshakeAt =  performance.now();
+                metrics.tlsHandshakeAt = process.hrtime.bigint();
             });
             socket.on('timeout', () => {
                 cleanup();
@@ -113,11 +113,12 @@ function sendRequest(urlStr) {
 
 function calculateMetrics(metrics, status) {
     if (status >= 200 && status <= 300) overallMetrics.successCount++; else overallMetrics.failureCount++;
-    responseTime = helpers.ms((metrics.end != null) ? (metrics.end - metrics.start) : null);
-    dnsLookup = helpers.ms(metrics.dnsLookupAt !== undefined ? (metrics.dnsLookupAt - metrics.start) : null);
-    tcpConnection = helpers.ms(metrics.tcpConnectionAt - (metrics.dnsLookupAt || metrics.start));
-    tlsHanshake = helpers.ms(metrics.tlsHandshakeAt !== undefined ? (metrics.tlsHandshakeAt - metrics.tcpConnectionAt) : null);
-    ttfb = helpers.ms(metrics.firstByteAt - (metrics.tlsHandshakeAt || metrics.tcpConnectionAt));
+    
+    const responseTime = helpers.ms(metrics.end != null ? helpers.diffBigint(metrics.end, metrics.start) : null);
+    const dnsLookup = helpers.ms(metrics.dnsLookupAt !== undefined ? helpers.diffBigint(metrics.dnsLookupAt, metrics.start) : null);
+    const tcpConnection = helpers.ms(metrics.tcpConnectionAt ? helpers.diffBigint(metrics.tcpConnectionAt, (metrics.dnsLookupAt || metrics.start)) : null);
+    const tlsHanshake = helpers.ms(metrics.tlsHandshakeAt !== undefined ? helpers.diffBigint(metrics.tlsHandshakeAt, metrics.tcpConnectionAt) : null);
+    const ttfb = helpers.ms(metrics.firstByteAt ? helpers.diffBigint(metrics.firstByteAt, (metrics.tlsHandshakeAt || metrics.tcpConnectionAt)) : null);
 
     helpers.push(overallMetrics.responseTimes, responseTime);
     helpers.push(overallMetrics.dnsLookup, dnsLookup);
@@ -127,7 +128,7 @@ function calculateMetrics(metrics, status) {
 }
 
 async function worker(urlStr, deadline) {
-    while (performance.now() < deadline) {
+    while (helpers.ms(process.hrtime.bigint()) < deadline) {
         overallMetrics.totalCount++;
 
         try {
@@ -141,21 +142,21 @@ async function worker(urlStr, deadline) {
 }
 
 async function loadTestEnpoint(urlStr, duration, concurrency) {
-    durationInMilliSeconds = Math.max(1, Math.round(Number(duration) * 1000));
-    const startTime = performance.now(); 
-    const deadline = startTime + durationInMilliSeconds;  
+    const durationInMilliSeconds = Math.max(1, Math.round(Number(duration) * 1000));
+    const startTime = process.hrtime.bigint(); 
+    const deadline = helpers.ms(startTime) + durationInMilliSeconds;  
 
     const workers = Array(concurrency).fill().map(() => worker(urlStr, deadline));
     
     await Promise.all(workers); 
 
-    const endTime = performance.now(); 
+    const endTime = process.hrtime.bigint(); 
 
-    const testDuration = (endTime - startTime) / 1000;
+    const testDuration = helpers.ms(endTime) - helpers.ms(startTime);
     
     const metricsForDisplay = {
         ...overallMetrics,
-        duration: testDuration
+        duration: testDuration / 1000
     };
     
     helpers.printBeautifulMetrics(metricsForDisplay);
